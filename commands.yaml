@@ -1,0 +1,230 @@
+commands:
+  # ── App Control ──────────────────────────────────────────────
+  - intent: open_app
+    patterns:
+      - "open {app}"
+      - "launch {app}"
+      - "start {app}"
+      - "fire up {app}"
+      - "run {app}"
+    action: apps.open_app
+    slots:
+      app: { type: string, required: true }
+    response: "Opening {app}"
+
+  - intent: close_app
+    patterns:
+      - "close {app}"
+      - "quit {app}"
+      - "kill {app}"
+      - "exit {app}"
+    action: apps.close_app
+    slots:
+      app: { type: string, required: true }
+    response: "Closing {app}"
+
+  - intent: switch_app
+    patterns:
+      - "switch to {app}"
+      - "go to {app}"
+      - "show {app}"
+      - "focus {app}"
+    action: apps.switch_to_app
+    slots:
+      app: { type: string, required: true }
+    response: "Switching to {app}"
+
+  # ── Volume ───────────────────────────────────────────────────
+  - intent: set_volume
+    patterns:
+      - "set volume to {level}"
+      - "volume {level}"
+      - "volume at {level}"
+    action: system.set_volume
+    slots:
+      level: { type: int, required: true }
+    response: "Volume set to {level}"
+
+  - intent: mute
+    patterns:
+      - "mute"
+      - "silence"
+      - "mute audio"
+      - "mute sound"
+    action: system.mute
+    response: "Muted"
+
+  - intent: unmute
+    patterns:
+      - "unmute"
+      - "unmute audio"
+      - "turn sound on"
+    action: system.unmute
+    response: "Unmuted"
+
+  - intent: volume_up
+    patterns:
+      - "volume up"
+      - "louder"
+      - "turn it up"
+      - "increase volume"
+    action: system.volume_up
+    response: "Volume up"
+
+  - intent: volume_down
+    patterns:
+      - "volume down"
+      - "quieter"
+      - "turn it down"
+      - "decrease volume"
+    action: system.volume_down
+    response: "Volume down"
+
+  # ── Brightness ───────────────────────────────────────────────
+  - intent: brightness_up
+    patterns:
+      - "brightness up"
+      - "brighter"
+      - "increase brightness"
+    action: system.brightness_up
+    response: "Brightness increased"
+
+  - intent: brightness_down
+    patterns:
+      - "brightness down"
+      - "dimmer"
+      - "decrease brightness"
+    action: system.brightness_down
+    response: "Brightness decreased"
+
+  # ── Do Not Disturb ──────────────────────────────────────────
+  - intent: dnd_on
+    patterns:
+      - "do not disturb"
+      - "dnd on"
+      - "focus mode"
+      - "silence notifications"
+    action: system.dnd_on
+    response: "Do not disturb enabled"
+
+  - intent: dnd_off
+    patterns:
+      - "turn off do not disturb"
+      - "dnd off"
+      - "disable focus"
+    action: system.dnd_off
+    response: "Do not disturb disabled"
+
+  # ── Dark/Light Mode ─────────────────────────────────────────
+  - intent: dark_mode
+    patterns:
+      - "dark mode"
+      - "go dark"
+      - "dark theme"
+      - "enable dark mode"
+    action: system.dark_mode_on
+    response: "Dark mode enabled"
+
+  - intent: light_mode
+    patterns:
+      - "light mode"
+      - "go light"
+      - "light theme"
+      - "disable dark mode"
+    action: system.dark_mode_off
+    response: "Light mode enabled"
+
+  # ── Sleep / Lock ─────────────────────────────────────────────
+  - intent: lock_screen
+    patterns:
+      - "lock screen"
+      - "lock"
+      - "lock the screen"
+    action: system.lock_screen
+    response: "Locking screen"
+
+  - intent: sleep
+    patterns:
+      - "sleep"
+      - "go to sleep"
+      - "put the computer to sleep"
+    action: system.sleep
+    response: "Going to sleep"
+
+  # ── Screenshot ───────────────────────────────────────────────
+  - intent: screenshot
+    patterns:
+      - "screenshot"
+      - "take a screenshot"
+      - "capture screen"
+      - "screen capture"
+    action: system.screenshot
+    response: "Screenshot taken"
+
+  # ── Files ────────────────────────────────────────────────────
+  - intent: open_file
+    patterns:
+      - "open file {path}"
+    action: files.open_file
+    slots:
+      path: { type: string, required: true }
+    response: "Opening {path}"
+
+  - intent: open_folder
+    patterns:
+      - "open folder {path}"
+      - "show folder {path}"
+      - "go to folder {path}"
+    action: files.open_folder
+    slots:
+      path: { type: string, required: true }
+    response: "Opening folder {path}"
+
+  # ── Trash ────────────────────────────────────────────────────
+  - intent: empty_trash
+    patterns:
+      - "empty trash"
+      - "empty the trash"
+      - "clear trash"
+    action: system.empty_trash
+    response: "Emptying trash"
+
+  # ── Time / Date ──────────────────────────────────────────────
+  - intent: tell_time
+    patterns:
+      - "what time is it"
+      - "tell me the time"
+      - "current time"
+      - "time"
+    action: system.tell_time
+    response: "{result}"
+
+  - intent: tell_date
+    patterns:
+      - "what's the date"
+      - "tell me the date"
+      - "what day is it"
+      - "today's date"
+      - "date"
+    action: system.tell_date
+    response: "{result}"
+
+  # ── Jarvis Meta ──────────────────────────────────────────────
+  - intent: jarvis_status
+    patterns:
+      - "status"
+      - "how are you"
+      - "are you there"
+      - "you awake"
+    action: system.status
+    response: "All systems operational, sir."
+
+  - intent: jarvis_stop
+    patterns:
+      - "stop listening"
+      - "go to sleep jarvis"
+      - "shut down"
+      - "goodbye"
+      - "that's all"
+    action: system.jarvis_sleep
+    response: "Standing by."

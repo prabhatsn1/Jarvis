@@ -1,0 +1,31 @@
+wake:
+  engine: "porcupine" # porcupine | keyboard
+  porcupine_access_key: "" # Get free at https://console.picovoice.ai
+  keyword: "jarvis"
+  sensitivity: 0.7
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  command_timeout: 5.0 # Max seconds to listen after wake
+
+speech:
+  whisper_model: "base.en" # tiny.en | base.en | small.en
+  language: "en"
+
+voice:
+  engine: "system" # system (macOS `say`)
+  voice: "Daniel" # macOS voice name
+  rate: 180 # Words per minute
+
+memory:
+  db_path: "~/.jarvis/memory.db"
+
+ipc:
+  socket_path: "/tmp/jarvis.sock"
+
+clap:
+  enabled: true
+  threshold: 0.6
+  min_interval: 0.1 # Seconds between claps (min)
+  max_interval: 0.5 # Seconds between claps (max)
