@@ -10,9 +10,11 @@ public partial class App : Application
 
         var stateManager = new StateManager();
         var hud = new HUDWindow(stateManager);
+        MainWindow = hud;
         hud.Show();
 
         var ipcClient = new IPCClient(stateManager);
         ipcClient.Connect();
     }
 }
+
