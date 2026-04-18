@@ -18,7 +18,7 @@ $hudExe = "hud-win\bin\Release\net8.0-windows\JarvisHUD.exe"
 $hudProc = $null
 if (Test-Path $hudExe) {
     Start-Sleep -Seconds 1  # Let core open pipe
-    $hudProc = Start-Process -FilePath $hudExe -NoNewWindow -PassThru
+    $hudProc = Start-Process -FilePath $hudExe -PassThru
     Write-Host "  HUD started (PID: $($hudProc.Id))"
 } else {
     Write-Host "  HUD not built - run .\scripts\install.ps1 first"
