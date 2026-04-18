@@ -7,66 +7,57 @@ log = logging.getLogger("jarvis.audio.wake")
 
 class WakeWordDetector:
     def __init__(self, config):
-        self.engine = config.get("engine", "porcupine")
-        self._detector = None
+        self.engine = config.get("engine", "openwakeword")
+        self._model = None
 
-        if self.engine == "porcupine":
-            self._init_porcupine(config)
+        if self.engine == "openwakeword":
+            self._init_openwakeword(config)
         else:
             log.info("Wake word engine: keyboard (press Enter to wake)")
 
-    def _init_porcupine(self, config):
-        access_key = config.get("porcupine_access_key", "")
-        if not access_key:
-            log.warning(
-                "No Porcupine access key provided. "
-                "Get one free at https://console.picovoice.ai — "
-                "falling back to keyboard mode."
-            )
-            self.engine = "disabled"
-            return
-
+    def _init_openwakeword(self, config):
         try:
-            import pvporcupine
+            import openwakeword
+            from openwakeword.model import Model
 
-            keyword = config.get("keyword", "jarvis")
-            sensitivity = config.get("sensitivity", 0.7)
+            model_name = config.get("model", "hey_jarvis")
+            self.threshold = config.get("threshold", 0.5)
+            self._model_name = model_name
 
-            self._detector = pvporcupine.create(
-                access_key=access_key,
-                keywords=[keyword],
-                sensitivities=[sensitivity],
+            # Download pre-trained models if not already present
+            openwakeword.utils.download_models()
+
+            self._model = Model(wakeword_models=[model_name])
+            log.info(
+                f"OpenWakeWord ready (model='{model_name}', "
+                f"threshold={self.threshold})"
             )
-            log.info(f"Porcupine wake word ready (keyword='{keyword}')")
         except ImportError:
-            log.warning("pvporcupine not installed — falling back to keyboard mode.")
+            log.warning(
+                "openwakeword not installed — falling back to keyboard mode."
+            )
             self.engine = "disabled"
         except Exception as e:
-            log.error(f"Porcupine init failed: {e}")
+            log.error(f"OpenWakeWord init failed: {e}")
             self.engine = "disabled"
 
     def process(self, audio_chunk):
         """Process a single audio chunk. Returns True if wake word detected."""
-        if self.engine != "porcupine" or self._detector is None:
+        if self.engine != "openwakeword" or self._model is None:
             return False
 
-        # Porcupine expects int16 PCM
+        # OpenWakeWord expects int16 PCM
         pcm = (audio_chunk * 32767).astype(np.int16)
 
-        frame_length = self._detector.frame_length
-        if len(pcm) < frame_length:
-            pcm = np.pad(pcm, (0, frame_length - len(pcm)))
-        elif len(pcm) > frame_length:
-            pcm = pcm[:frame_length]
+        prediction = self._model.predict(pcm)
 
-        result = self._detector.process(pcm)
-        if result >= 0:
-            log.info("Wake word detected!")
-            return True
+        for key, score in prediction.items():
+            if score >= self.threshold:
+                log.info(f"Wake word detected! (model={key}, score={score:.3f})")
+                self._model.reset()
+                return True
 
         return False
 
     def cleanup(self):
-        if self._detector:
-            self._detector.delete()
-            self._detector = None
+        self._model = None
