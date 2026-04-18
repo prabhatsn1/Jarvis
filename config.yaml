@@ -1,8 +1,7 @@
 wake:
-  engine: "porcupine" # porcupine | keyboard
-  porcupine_access_key: "" # Get free at https://console.picovoice.ai
-  keyword: "jarvis"
-  sensitivity: 0.7
+  engine: "openwakeword" # openwakeword | keyboard
+  model: "hey_jarvis" # Pre-trained model name (hey_jarvis, alexa, etc.)
+  threshold: 0.5 # 0.0 (loose) to 1.0 (strict)
 
 audio:
   sample_rate: 16000
