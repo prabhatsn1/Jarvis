@@ -5,7 +5,7 @@
         Width="200" Height="200"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="Transparent"
+        Background="#01000000"
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
