@@ -6,7 +6,7 @@ import sounddevice as sd
 
 log = logging.getLogger("jarvis.audio")
 
-CHUNK_DURATION = 0.032  # 32ms chunks — matches Porcupine frame size
+CHUNK_DURATION = 0.080  # 80ms chunks — matches OpenWakeWord frame size
 SILENCE_THRESHOLD = 0.01
 SILENCE_TIMEOUT = 1.5  # Seconds of silence before stopping command recording
 
