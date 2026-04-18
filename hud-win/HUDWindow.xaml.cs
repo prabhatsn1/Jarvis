@@ -23,8 +23,8 @@ public partial class HUDWindow : Window
 
         // Position: bottom-center of primary screen
         var screen = SystemParameters.WorkArea;
-        Left = (screen.Width - Width) / 2;
-        Top = screen.Height - Height - 60;
+        Left = screen.Left + (screen.Width - Width) / 2;
+        Top = screen.Top + screen.Height - Height - 60;
 
         _stateManager.PropertyChanged += (s, e) =>
         {
@@ -32,7 +32,8 @@ public partial class HUDWindow : Window
                 AnimateState(_stateManager.State);
         };
 
-        AnimateState(JarvisState.Dormant);
+        // Start animation after the window is fully loaded and rendered
+        Loaded += (s, e) => AnimateState(JarvisState.Dormant);
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
