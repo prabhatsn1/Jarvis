@@ -18,7 +18,7 @@ A Jarvis-like desktop assistant for **macOS and Windows**. Voice-activated, offl
 ┌──────────────┴───────────────────────────────┐
 │      Python Core Process (cross-platform)    │
 │                                              │
-│  Mic → Porcupine/Clap → Record → Whisper     │
+│  Mic → OpenWakeWord/Clap → Record → Whisper   │
 │      → Intent Engine → Action Executor       │
 │      → TTS → IPC state → HUD                 │
 │                                              │
@@ -55,7 +55,7 @@ A Jarvis-like desktop assistant for **macOS and Windows**. Voice-activated, offl
 
 **Optional (both platforms):**
 
-- Picovoice account (free) — for "Jarvis" wake word. Without it, keyboard mode is used (press Enter to wake).
+- No extra accounts needed — OpenWakeWord includes a free pre-trained "hey jarvis" model.
 
 ---
 
@@ -95,19 +95,18 @@ This will:
 
 ### Both platforms
 
-### 2. Configure wake word (optional but recommended)
+### 2. Configure wake word (optional)
 
-1. Go to [https://console.picovoice.ai](https://console.picovoice.ai)
-2. Sign up (free tier is enough)
-3. Copy your **Access Key**
-4. Paste it into `config.yaml`:
+The default config uses OpenWakeWord with the pre-trained `hey_jarvis` model — no API key needed. You can adjust the detection threshold in `config.yaml`:
 
 ```yaml
 wake:
-  porcupine_access_key: "YOUR_KEY_HERE"
+  engine: "openwakeword"
+  model: "hey_jarvis"
+  threshold: 0.5 # Lower = more sensitive, higher = fewer false activations
 ```
 
-Without this key, Jarvis falls back to **keyboard mode** — press Enter in the terminal to wake, then speak.
+Set `engine: "keyboard"` to disable wake word entirely and only use Enter key.
 
 ### 3. Grant permissions
 
@@ -147,7 +146,7 @@ Three ways to wake:
 
 | Method          | How                         | Requires             |
 | --------------- | --------------------------- | -------------------- |
-| **Wake word**   | Say "Jarvis"                | Porcupine access key |
+| **Wake word**   | Say "Hey Jarvis"             | Nothing              |
 | **Double clap** | Clap twice, 100-500ms apart | Nothing              |
 | **Keyboard**    | Press Enter in the terminal | Nothing (fallback)   |
 
@@ -247,10 +246,9 @@ All configuration lives in `config.yaml`:
 
 ```yaml
 wake:
-  engine: "porcupine" # porcupine | keyboard
-  porcupine_access_key: "" # Your Picovoice key
-  keyword: "jarvis" # Wake word
-  sensitivity: 0.7 # 0.0 (strict) to 1.0 (loose)
+  engine: "openwakeword" # openwakeword | keyboard
+  model: "hey_jarvis" # Pre-trained model (hey_jarvis, alexa, hey_mycroft, etc.)
+  threshold: 0.5 # 0.0 (loose) to 1.0 (strict)
 ```
 
 Set `engine: "keyboard"` to disable wake word entirely and only use Enter key.
@@ -259,7 +257,7 @@ Set `engine: "keyboard"` to disable wake word entirely and only use Enter key.
 
 ```yaml
 audio:
-  sample_rate: 16000 # Don't change — matches Whisper/Porcupine
+  sample_rate: 16000 # Don't change — matches Whisper/OpenWakeWord
   channels: 1 # Mono
   command_timeout: 5.0 # Max seconds to listen for a command
 ```
@@ -372,7 +370,7 @@ Jarvis/
 │   │
 │   ├── audio/                           # ── Audio Subsystem ─────────
 │   │   ├── capture.py                   #   Mic input → numpy chunks
-│   │   ├── wake.py                      #   Porcupine wake word detection
+│   │   ├── wake.py                      #   OpenWakeWord wake word detection
 │   │   └── clap.py                      #   Double-clap DSP detector
 │   │
 │   ├── speech/                          # ── Speech Subsystem ────────
@@ -521,10 +519,10 @@ Restart Jarvis. The new command works immediately — no retraining, no model up
 
 ### Wake word not triggering
 
-- Verify your Porcupine key in `config.yaml`
-- Try increasing sensitivity: `wake.sensitivity: 0.9`
-- Speak clearly: "Jarvis" (emphasis on first syllable)
-- Check: the key is from [console.picovoice.ai](https://console.picovoice.ai), not a different Picovoice product
+- Try lowering the threshold: `wake.threshold: 0.3`
+- Speak clearly: "Hey Jarvis"
+- Ensure `openwakeword` is installed: `pip install openwakeword`
+- Check logs for model loading errors
 
 ### Double clap triggers on noise
 
@@ -569,7 +567,7 @@ Restart Jarvis. The new command works immediately — no retraining, no model up
 
 | Package          | Purpose                            |
 | ---------------- | ---------------------------------- |
-| `pvporcupine`    | Wake word detection (Porcupine)    |
+| `openwakeword`   | Wake word detection (OpenWakeWord)  |
 | `sounddevice`    | Real-time microphone capture       |
 | `numpy`          | Audio buffer manipulation          |
 | `faster-whisper` | Local speech-to-text (CTranslate2) |
