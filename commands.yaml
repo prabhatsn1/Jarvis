@@ -226,5 +226,9 @@ commands:
       - "shut down"
       - "goodbye"
       - "that's all"
+      - "bye"
+      - "bye jarvis"
+      - "see you"
+      - "go to sleep"
     action: system.jarvis_sleep
     response: "Standing by."

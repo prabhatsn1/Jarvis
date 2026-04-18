@@ -27,7 +27,7 @@ class IntentEngine:
 
     def match(self, text):
         """Match text → IntentResult or None. No hallucinations."""
-        text = text.strip()
+        text = text.strip().rstrip(".!?,;")
         if not text:
             return None
 
@@ -69,7 +69,7 @@ class IntentEngine:
             for regex in cmd.compiled:
                 m = regex.match(text)
                 if m:
-                    slots = {k: v.strip() for k, v in m.groupdict().items()}
+                    slots = {k: v.strip().rstrip(".!?,;") for k, v in m.groupdict().items()}
                     return IntentResult(
                         intent=cmd.intent,
                         action=cmd.action,

@@ -56,7 +56,8 @@ class AudioCapture:
 
         log.info("Recording command...")
         start = time.time()
-        last_speech = start
+        last_speech = None
+        speech_started = False
 
         while time.time() - start < timeout:
             time.sleep(0.1)
@@ -65,7 +66,8 @@ class AudioCapture:
                 rms = np.sqrt(np.mean(recent ** 2))
                 if rms > SILENCE_THRESHOLD:
                     last_speech = time.time()
-                elif time.time() - last_speech > SILENCE_TIMEOUT:
+                    speech_started = True
+                elif speech_started and time.time() - last_speech > SILENCE_TIMEOUT:
                     break
 
         self._recording = False

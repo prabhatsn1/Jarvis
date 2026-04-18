@@ -29,6 +29,7 @@ class Jarvis:
         self.running = False
         self.wake_queue: queue.Queue = queue.Queue()
         self.state = "dormant"
+        self.awake = False  # persistent-awake mode
 
         log.info("Initializing JARVIS v1...")
 
@@ -68,7 +69,7 @@ class Jarvis:
             self.wake_queue.put("clap")
 
     def _keyboard_loop(self):
-        """Fallback: press Enter to wake Jarvis (when no wake-word engine)."""
+        """Press Enter to wake Jarvis."""
         while self.running:
             try:
                 input()  # blocks until Enter
@@ -80,57 +81,59 @@ class Jarvis:
     # ── Command pipeline ────────────────────────────────────────
 
     def _process_command(self):
-        self._set_state("woke")
-        self.synthesizer.beep()
+        if not self.awake:
+            self.awake = True
+            self._set_state("woke")
+            self.synthesizer.beep()
 
-        # Record
-        self._set_state("listening")
-        audio_data = self.audio.record_command(
-            timeout=self.config["audio"]["command_timeout"]
-        )
-
-        if audio_data is None:
-            self.synthesizer.speak("I didn't catch that.")
-            self._set_state("dormant")
-            return
-
-        # Transcribe
-        self._set_state("thinking")
-        text = self.recognizer.transcribe(audio_data)
-
-        if not text:
-            self.synthesizer.speak("I didn't catch that.")
-            self._set_state("dormant")
-            return
-
-        log.info(f"Heard: '{text}'")
-        self.ipc.broadcast({"type": "transcript", "text": text})
-
-        # Match intent
-        result = self.intent_engine.match(text)
-
-        if result is None:
-            self.synthesizer.speak("I don't know how to do that.")
-            self._set_state("dormant")
-            return
-
-        log.info(f"Intent: {result.intent} | Slots: {result.slots}")
-
-        # Execute
-        action_result = self.executor.execute(result.action, result.slots)
-
-        # Respond
-        self._set_state("speaking")
-        try:
-            response = result.response.format(
-                **result.slots, result=action_result or ""
+        while self.awake:
+            # Record
+            self._set_state("listening")
+            audio_data = self.audio.record_command(
+                timeout=self.config["audio"]["command_timeout"]
             )
-        except KeyError:
-            response = action_result or "Done."
-        self.synthesizer.speak(response)
 
-        # Log
-        self.memory.log_action(result.intent, text, result.slots)
+            if audio_data is None:
+                continue  # nothing said, just keep listening
+
+            # Transcribe
+            self._set_state("thinking")
+            text = self.recognizer.transcribe(audio_data)
+
+            if not text:
+                continue  # nothing transcribed, keep listening
+
+            log.info(f"Heard: '{text}'")
+            self.ipc.broadcast({"type": "transcript", "text": text})
+
+            # Match intent
+            result = self.intent_engine.match(text)
+
+            if result is None:
+                self.synthesizer.speak("I don't know how to do that.")
+                continue
+
+            log.info(f"Intent: {result.intent} | Slots: {result.slots}")
+
+            # Execute
+            action_result = self.executor.execute(result.action, result.slots)
+
+            # Respond
+            self._set_state("speaking")
+            try:
+                response = result.response.format(
+                    **result.slots, result=action_result or ""
+                )
+            except KeyError:
+                response = action_result or "Done."
+            self.synthesizer.speak(response)
+
+            # Log
+            self.memory.log_action(result.intent, text, result.slots)
+
+            # Stand by if user said bye
+            if result.intent == "jarvis_stop":
+                self.awake = False
 
         self._set_state("dormant")
 
@@ -157,23 +160,20 @@ class Jarvis:
         # Start audio pipeline
         self.audio.start(self._on_audio)
 
-        # Keyboard fallback when no wake-word engine
-        if self.wake_detector.engine == "disabled":
-            kb_thread = threading.Thread(
-                target=self._keyboard_loop, daemon=True
-            )
-            kb_thread.start()
-            log.info("No wake word — press Enter to wake Jarvis.")
+        # Keyboard always available alongside wake word / clap
+        kb_thread = threading.Thread(target=self._keyboard_loop, daemon=True)
+        kb_thread.start()
 
         self._set_state("dormant")
         self.synthesizer.speak("Jarvis online.")
-        log.info("JARVIS is listening. Say 'Jarvis' or double-clap to wake.")
+        log.info("JARVIS is listening. Say 'Hey Jarvis', double-clap, or press Enter to wake.")
 
         # Main event loop
         while self.running:
             try:
                 trigger = self.wake_queue.get(timeout=0.5)
                 log.info(f"Wake trigger: {trigger}")
-                self._process_command()
+                if not self.awake:
+                    self._process_command()
             except queue.Empty:
                 continue
