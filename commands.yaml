@@ -232,3 +232,449 @@ commands:
       - "go to sleep"
     action: system.jarvis_sleep
     response: "Standing by."
+
+  # ── Memory ───────────────────────────────────────────────────
+  - intent: recall_topic
+    patterns:
+      - "what do you know about {topic}"
+      - "recall {topic}"
+      - "what do you remember about {topic}"
+    action: memory.recall_topic
+    slots:
+      topic: { type: string, required: true }
+    response: "{result}"
+
+  - intent: store_user_fact
+    patterns:
+      - "remember that {fact}"
+      - "remember {fact}"
+      - "store fact {fact}"
+    action: memory.store_user_fact
+    slots:
+      fact: { type: string, required: true }
+    response: "{result}"
+
+  - intent: forget_topic
+    patterns:
+      - "forget about {topic}"
+      - "forget {topic}"
+      - "delete memory about {topic}"
+    action: memory.forget_topic
+    slots:
+      topic: { type: string, required: true }
+    response: "{result}"
+
+  # ── Health Monitor ───────────────────────────────────────────
+  - intent: health_status
+    patterns:
+      - "system status"
+      - "resource status"
+      - "how is my system doing"
+      - "cpu ram disk status"
+      - "system health"
+      - "check resources"
+    action: monitor.health_status
+    response: "{result}"
+
+  - intent: health_monitor_on
+    patterns:
+      - "start resource monitor"
+      - "enable health monitor"
+      - "watch system resources"
+      - "start health monitor"
+      - "monitor resources"
+    action: monitor.enable_monitor
+    response: "{result}"
+
+  - intent: health_monitor_off
+    patterns:
+      - "stop resource monitor"
+      - "disable health monitor"
+      - "stop watching resources"
+      - "stop health monitor"
+    action: monitor.disable_monitor
+    response: "{result}"
+
+  # ── Calendar / Email Integrations ────────────────────────────
+  - intent: schedule_today
+    patterns:
+      - "what is on my schedule today"
+      - "what is on my calendar today"
+      - "todays schedule"
+      - "today's schedule"
+      - "what's on my schedule today"
+      - "do i have meetings today"
+      - "any meetings today"
+      - "what are my events today"
+    action: integrations.schedule_today
+    response: "{result}"
+
+  - intent: schedule_next
+    patterns:
+      - "what is next on my calendar"
+      - "what is my next meeting"
+      - "next event"
+      - "next meeting"
+      - "what's next on my calendar"
+      - "when is my next meeting"
+    action: integrations.next_event
+    response: "{result}"
+
+  - intent: connect_google
+    patterns:
+      - "connect google account"
+      - "connect gmail"
+      - "connect google calendar"
+      - "add google account"
+      - "link google account"
+    action: integrations.connect_google
+    response: "{result}"
+
+  - intent: connect_outlook
+    patterns:
+      - "connect outlook account"
+      - "connect microsoft account"
+      - "connect outlook calendar"
+      - "add outlook account"
+      - "link outlook account"
+    action: integrations.connect_outlook
+    response: "{result}"
+
+  - intent: disconnect_account
+    patterns:
+      - "disconnect {provider}"
+      - "remove {provider} account"
+      - "unlink {provider} account"
+      - "disconnect {provider} account"
+    action: integrations.disconnect_account
+    slots:
+      provider: { type: string, required: true }
+    response: "{result}"
+
+  - intent: list_accounts
+    patterns:
+      - "what accounts are connected"
+      - "list connected accounts"
+      - "which accounts are linked"
+      - "show connected accounts"
+    action: integrations.list_accounts
+    response: "{result}"
+
+  # ── Browser Automation ───────────────────────────────────────
+  - intent: browser_navigate
+    patterns:
+      - "go to {url}"
+      - "navigate to {url}"
+      - "browse to {url}"
+      - "open website {url}"
+      - "open the website {url}"
+    action: browser.browser_navigate
+    slots:
+      url: { type: string, required: true }
+    response: "{result}"
+
+  - intent: browser_search
+    patterns:
+      - "search for {query}"
+      - "search {query} in browser"
+      - "look up {query} online"
+      - "find {query} online"
+      - "google {query}"
+      - "browser search {query}"
+    action: browser.browser_web_search
+    slots:
+      query: { type: string, required: true }
+    response: "{result}"
+
+  - intent: browser_read_page
+    patterns:
+      - "read the page"
+      - "what does the page say"
+      - "get page text"
+      - "read page content"
+      - "summarize the page"
+    action: browser.browser_get_page_text
+    response: "{result}"
+
+  - intent: browser_screenshot
+    patterns:
+      - "take a browser screenshot"
+      - "screenshot the browser"
+      - "capture the browser"
+    action: browser.browser_screenshot
+    response: "{result}"
+
+  - intent: browser_close
+    patterns:
+      - "close browser"
+      - "close the browser"
+      - "close chrome"
+      - "close safari"
+      - "quit browser"
+    action: browser.browser_close
+    response: "{result}"
+
+  # ── Smart Home ───────────────────────────────────────────────
+  - intent: smart_home_light_on
+    patterns:
+      - "turn on {entity}"
+      - "turn on the {entity}"
+      - "switch on {entity}"
+      - "switch on the {entity}"
+      - "lights on"
+    action: smarthome.turn_on_light
+    slots:
+      entity: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_light_off
+    patterns:
+      - "turn off {entity}"
+      - "turn off the {entity}"
+      - "switch off {entity}"
+      - "switch off the {entity}"
+      - "lights off"
+    action: smarthome.turn_off_light
+    slots:
+      entity: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_set_brightness
+    patterns:
+      - "set {entity} brightness to {brightness}"
+      - "set brightness of {entity} to {brightness}"
+      - "dim {entity} to {brightness}"
+      - "brighten {entity} to {brightness}"
+      - "dim {entity} to {brightness} percent"
+    action: smarthome.set_brightness
+    slots:
+      entity: { type: string, required: true }
+      brightness: { type: int, required: true }
+    response: "{result}"
+
+  - intent: smart_home_set_color
+    patterns:
+      - "set {entity} color to {color}"
+      - "set {entity} colour to {color}"
+      - "change {entity} to {color}"
+      - "make {entity} {color}"
+    action: smarthome.set_color
+    slots:
+      entity: { type: string, required: true }
+      color: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_plug_on
+    patterns:
+      - "turn on {entity} plug"
+      - "switch on {entity} plug"
+      - "plug on {entity}"
+      - "enable plug {entity}"
+    action: smarthome.turn_on_plug
+    slots:
+      entity: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_plug_off
+    patterns:
+      - "turn off {entity} plug"
+      - "switch off {entity} plug"
+      - "plug off {entity}"
+      - "disable plug {entity}"
+    action: smarthome.turn_off_plug
+    slots:
+      entity: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_set_temperature
+    patterns:
+      - "set thermostat to {temperature}"
+      - "set temperature to {temperature}"
+      - "set the temperature to {temperature}"
+      - "set {entity} thermostat to {temperature}"
+      - "set {entity} temperature to {temperature}"
+    action: smarthome.set_temperature
+    slots:
+      temperature: { type: string, required: true }
+      entity: { type: string }
+    response: "{result}"
+
+  - intent: smart_home_get_temperature
+    patterns:
+      - "what is the temperature"
+      - "what's the temperature"
+      - "current temperature"
+      - "what is the thermostat set to"
+      - "check thermostat"
+    action: smarthome.get_temperature
+    response: "{result}"
+
+  - intent: smart_home_device_state
+    patterns:
+      - "what is {entity} status"
+      - "what is the status of {entity}"
+      - "is {entity} on"
+      - "check {entity}"
+    action: smarthome.get_device_state
+    slots:
+      entity: { type: string, required: true }
+    response: "{result}"
+
+  - intent: smart_home_list_devices
+    patterns:
+      - "list smart home devices"
+      - "what smart home devices do I have"
+      - "show smart devices"
+      - "smart home devices"
+      - "list my lights"
+      - "show all lights"
+    action: smarthome.list_devices
+    response: "{result}"
+
+  # ── Exec Commands (terminal / scripts) ──────────────────────
+  - intent: run_terminal_command
+    patterns:
+      - "run command {command}"
+      - "run terminal command {command}"
+      - "execute command {command}"
+      - "execute {command}"
+      - "terminal {command}"
+      - "run {command} in terminal"
+      - "shell {command}"
+    action: exec_commands.run_terminal_command
+    slots:
+      command: { type: string, required: true }
+    response: "{result}"
+
+  - intent: run_python_script
+    patterns:
+      - "run script {path}"
+      - "run python script {path}"
+      - "execute script {path}"
+      - "run the script {path}"
+      - "python {path}"
+    action: exec_commands.run_python_script
+    slots:
+      path: { type: string, required: true }
+    response: "{result}"
+
+  # ── Timers / Alarms / Reminders ──────────────────────────────
+  - intent: set_timer
+    patterns:
+      - "set timer for {duration}"
+      - "set a timer for {duration}"
+      - "timer for {duration}"
+      - "{duration} timer"
+      - "start a {duration} timer"
+      - "countdown {duration}"
+    action: notify.set_timer
+    slots:
+      duration: { type: string, required: true }
+    response: "{result}"
+
+  - intent: set_alarm
+    patterns:
+      - "set alarm for {time}"
+      - "set an alarm for {time}"
+      - "set alarm at {time}"
+      - "alarm for {time}"
+      - "alarm at {time}"
+      - "wake me up at {time}"
+      - "wake me at {time}"
+    action: notify.set_alarm
+    slots:
+      time: { type: string, required: true }
+    response: "{result}"
+
+  - intent: set_reminder_duration
+    patterns:
+      - "remind me in {duration} to {message}"
+      - "reminder in {duration} to {message}"
+      - "remind me in {duration} about {message}"
+      - "set a reminder in {duration} to {message}"
+    action: notify.set_reminder_duration
+    slots:
+      duration: { type: string, required: true }
+      message: { type: string, required: true }
+    response: "{result}"
+
+  - intent: set_reminder_time
+    patterns:
+      - "remind me at {time} to {message}"
+      - "reminder at {time} to {message}"
+      - "remind me at {time} about {message}"
+      - "set a reminder at {time} to {message}"
+    action: notify.set_reminder_time
+    slots:
+      time: { type: string, required: true }
+      message: { type: string, required: true }
+    response: "{result}"
+
+  - intent: list_timers
+    patterns:
+      - "list timers"
+      - "list alarms"
+      - "list reminders"
+      - "what timers do I have"
+      - "show timers"
+      - "show alarms"
+      - "show reminders"
+      - "active timers"
+      - "any timers"
+    action: notify.list_scheduled
+    response: "{result}"
+
+  - intent: cancel_timer
+    patterns:
+      - "cancel timer"
+      - "cancel the timer"
+      - "cancel last timer"
+      - "stop timer"
+      - "cancel alarm"
+      - "cancel the alarm"
+      - "cancel last alarm"
+      - "cancel reminder"
+      - "cancel the reminder"
+      - "cancel {item}"
+    action: notify.cancel_item
+    slots:
+      item: { type: string }
+    response: "{result}"
+
+  - intent: snooze
+    patterns:
+      - "snooze"
+      - "snooze alarm"
+      - "snooze for {duration}"
+      - "snooze {duration}"
+    action: notify.snooze
+    slots:
+      duration: { type: string }
+    response: "{result}"
+
+  # ── Screen Vision ─────────────────────────────────────────────
+  - intent: describe_screen
+    patterns:
+      - "what's on my screen"
+      - "what is on my screen"
+      - "describe my screen"
+      - "what do you see on my screen"
+      - "look at my screen"
+      - "read my screen"
+      - "what's on screen"
+    action: vision.describe_screen
+    response: "{result}"
+
+  - intent: analyze_screen
+    patterns:
+      - "analyze my screen"
+      - "what is {question} on my screen"
+      - "on my screen {question}"
+      - "screen question {question}"
+      - "look at my screen and {question}"
+      - "check my screen {question}"
+      - "what does my screen say about {question}"
+    action: vision.analyze_screen
+    slots:
+      question: { type: string }
+    response: "{result}"

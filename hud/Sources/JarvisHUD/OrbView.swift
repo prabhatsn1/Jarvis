@@ -7,69 +7,124 @@ struct OrbView: View {
     @State private var ringRotation: Double = 0
     @State private var glowOpacity: Double = 0.3
     @State private var pulseScale: CGFloat = 1.0
+    @State private var waveScale1: CGFloat = 1.0
+    @State private var waveOpacity1: Double = 0.0
+    @State private var waveScale2: CGFloat = 1.0
+    @State private var waveOpacity2: Double = 0.0
 
     private let orbSize: CGFloat = 80
 
     var body: some View {
-        ZStack {
-            // Outer glow
-            Circle()
-                .fill(stateColor.opacity(glowOpacity * 0.3))
-                .frame(width: orbSize * 1.8, height: orbSize * 1.8)
-                .blur(radius: 20)
-                .scaleEffect(pulseScale)
-
-            // Spinning ring (listening / thinking)
-            if stateManager.state == .listening
-                || stateManager.state == .thinking
-            {
+        VStack(spacing: 0) {
+            // ── Orb ──────────────────────────────────────────────
+            ZStack {
+                // Outer glow
                 Circle()
-                    .strokeBorder(
-                        AngularGradient(
+                    .fill(stateColor.opacity(glowOpacity * 0.3))
+                    .frame(width: orbSize * 1.8, height: orbSize * 1.8)
+                    .blur(radius: 20)
+                    .scaleEffect(pulseScale)
+
+                // Spinning ring (listening / thinking)
+                if stateManager.state == .listening
+                    || stateManager.state == .thinking
+                {
+                    Circle()
+                        .strokeBorder(
+                            AngularGradient(
+                                colors: [
+                                    stateColor,
+                                    stateColor.opacity(0.2),
+                                    stateColor,
+                                ],
+                                center: .center
+                            ),
+                            lineWidth: 3
+                        )
+                        .frame(width: orbSize * 1.3, height: orbSize * 1.3)
+                        .rotationEffect(.degrees(ringRotation))
+                }
+
+                // Sound wave rings (speaking)
+                Circle()
+                    .strokeBorder(stateColor.opacity(waveOpacity1), lineWidth: 2)
+                    .frame(width: orbSize, height: orbSize)
+                    .scaleEffect(waveScale1)
+
+                Circle()
+                    .strokeBorder(stateColor.opacity(waveOpacity2), lineWidth: 2)
+                    .frame(width: orbSize, height: orbSize)
+                    .scaleEffect(waveScale2)
+
+                // Core orb
+                Circle()
+                    .fill(
+                        RadialGradient(
                             colors: [
-                                stateColor,
-                                stateColor.opacity(0.2),
-                                stateColor,
+                                stateColor.opacity(0.9),
+                                stateColor.opacity(0.4),
                             ],
-                            center: .center
-                        ),
-                        lineWidth: 3
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: orbSize / 2
+                        )
                     )
-                    .frame(width: orbSize * 1.3, height: orbSize * 1.3)
-                    .rotationEffect(.degrees(ringRotation))
+                    .frame(width: orbSize, height: orbSize)
+                    .scaleEffect(breatheScale)
+                    .shadow(color: stateColor.opacity(0.5), radius: 15)
+
+                // Inner specular highlight
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [.white.opacity(0.3), .clear],
+                            center: UnitPoint(x: 0.35, y: 0.35),
+                            startRadius: 0,
+                            endRadius: orbSize / 3
+                        )
+                    )
+                    .frame(width: orbSize * 0.7, height: orbSize * 0.7)
+                    .scaleEffect(breatheScale)
+
+                // Time (top of orb area)
+                VStack {
+                    Text(stateManager.stats.time)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(stateColor.opacity(0.8))
+                        .padding(.top, 10)
+                    Spacer()
+                }
             }
+            .frame(width: 200, height: 200)
 
-            // Core orb
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            stateColor.opacity(0.9),
-                            stateColor.opacity(0.4),
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: orbSize / 2
-                    )
-                )
-                .frame(width: orbSize, height: orbSize)
-                .scaleEffect(breatheScale)
-                .shadow(color: stateColor.opacity(0.5), radius: 15)
+            // ── Stats strip ──────────────────────────────────────
+            VStack(spacing: 2) {
+                if let weather = stateManager.stats.weather, !weather.isEmpty {
+                    Text(weather)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(stateColor.opacity(0.7))
+                }
 
-            // Inner specular highlight
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [.white.opacity(0.3), .clear],
-                        center: UnitPoint(x: 0.35, y: 0.35),
-                        startRadius: 0,
-                        endRadius: orbSize / 3
-                    )
-                )
-                .frame(width: orbSize * 0.7, height: orbSize * 0.7)
-                .scaleEffect(breatheScale)
+                if let cpu = stateManager.stats.cpu,
+                   let ram = stateManager.stats.ram
+                {
+                    Text(String(format: "CPU %.0f%%  RAM %.0f%%", cpu, ram))
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(stateColor.opacity(0.6))
+                }
+
+                if let task = stateManager.stats.task, !task.isEmpty {
+                    Text(task)
+                        .font(.system(size: 9))
+                        .foregroundColor(stateColor.opacity(0.5))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+            .frame(width: 200, height: 60)
+            .padding(.horizontal, 8)
         }
-        .frame(width: 200, height: 200)
+        .frame(width: 200, height: 260)
         .onChange(of: stateManager.state) { _, newState in
             animateState(newState)
         }
@@ -86,7 +141,7 @@ struct OrbView: View {
         case .woke:      return .cyan
         case .listening: return .blue
         case .thinking:  return .purple
-        case .speaking:  return .cyan
+        case .speaking:  return .green
         case .error:     return .red
         }
     }
@@ -94,10 +149,15 @@ struct OrbView: View {
     // MARK: - Animations per state
 
     private func animateState(_ state: JarvisState) {
-        // Reset ring
         withAnimation(.linear(duration: 0)) {
             ringRotation = 0
         }
+
+        // Reset wave rings instantly
+        waveScale1 = 1.0
+        waveOpacity1 = 0.0
+        waveScale2 = 1.0
+        waveOpacity2 = 0.0
 
         switch state {
         case .dormant:
@@ -155,9 +215,23 @@ struct OrbView: View {
                 .easeInOut(duration: 0.4)
                     .repeatForever(autoreverses: true)
             ) {
-                breatheScale = 1.12
+                breatheScale = 1.08
                 glowOpacity = 0.7
-                pulseScale = 1.15
+                pulseScale = 1.12
+            }
+            withAnimation(
+                .easeInOut(duration: 0.6)
+                    .repeatForever(autoreverses: true)
+            ) {
+                waveScale1 = 1.6
+                waveOpacity1 = 0.55
+            }
+            withAnimation(
+                .easeInOut(duration: 0.9)
+                    .repeatForever(autoreverses: true)
+            ) {
+                waveScale2 = 1.9
+                waveOpacity2 = 0.35
             }
 
         case .error:

@@ -44,6 +44,14 @@ class MemoryStore:
                 slots     TEXT,
                 timestamp TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS connected_accounts (
+                provider     TEXT NOT NULL,
+                account_id   TEXT NOT NULL,
+                connected_at TEXT NOT NULL,
+                last_sync_at TEXT,
+                PRIMARY KEY (provider, account_id)
+            );
         """)
         self._conn.commit()
 
@@ -122,9 +130,10 @@ class MemoryStore:
         )
         self._conn.commit()
 
-    def get_recent_actions(self, limit=10):
+    def get_recent_actions(self, n=10, limit=None):
+        count = limit if limit is not None else n
         rows = self._conn.execute(
-            "SELECT * FROM action_log ORDER BY id DESC LIMIT ?", (limit,)
+            "SELECT * FROM action_log ORDER BY id DESC LIMIT ?", (count,)
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -137,9 +146,46 @@ class MemoryStore:
             DELETE FROM routines;
             DELETE FROM phrase_mappings;
             DELETE FROM action_log;
+            DELETE FROM connected_accounts;
         """)
         self._conn.commit()
         log.info("Memory wiped.")
+
+    # ── Connected Accounts ───────────────────────────────────────
+
+    def save_connected_account(self, provider: str, account_id: str) -> None:
+        """Persist a connected OAuth account. Safe to call multiple times."""
+        self._conn.execute(
+            "INSERT OR REPLACE INTO connected_accounts "
+            "(provider, account_id, connected_at) VALUES (?, ?, ?)",
+            (provider.lower(), account_id, datetime.now().isoformat()),
+        )
+        self._conn.commit()
+
+    def remove_connected_account(self, provider: str, account_id: str) -> None:
+        """Remove a disconnected account from the store."""
+        self._conn.execute(
+            "DELETE FROM connected_accounts WHERE provider = ? AND account_id = ?",
+            (provider.lower(), account_id),
+        )
+        self._conn.commit()
+
+    def list_connected_accounts(self) -> list:
+        """Return all stored account metadata as a list of dicts."""
+        rows = self._conn.execute(
+            "SELECT provider, account_id, connected_at, last_sync_at "
+            "FROM connected_accounts ORDER BY connected_at"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def update_account_sync_time(self, provider: str, account_id: str) -> None:
+        """Record the timestamp of the most recent successful calendar sync."""
+        self._conn.execute(
+            "UPDATE connected_accounts SET last_sync_at = ? "
+            "WHERE provider = ? AND account_id = ?",
+            (datetime.now().isoformat(), provider.lower(), account_id),
+        )
+        self._conn.commit()
 
     def close(self):
         self._conn.close()

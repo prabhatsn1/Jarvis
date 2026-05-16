@@ -236,6 +236,17 @@ If Jarvis doesn't understand, it says "I don't know how to do that" — it never
 | Status check | `status`, `how are you`, `are you there`               |
 | Stand by     | `stop listening`, `goodbye`, `that's all`, `shut down` |
 
+### Calendar & Schedule
+
+| Command           | Patterns                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| Today's schedule  | `what is on my schedule today`, `todays schedule`, `do i have meetings today`    |
+| Next event        | `what is my next meeting`, `next event`, `what is next on my calendar`           |
+| Connect Google    | `connect google account`, `connect gmail`, `connect google calendar`             |
+| Connect Outlook   | `connect outlook account`, `connect microsoft account`, `connect outlook calendar` |
+| Disconnect        | `disconnect {provider}`, `remove {provider} account`                             |
+| List accounts     | `what accounts are connected`, `list connected accounts`                         |
+
 ---
 
 ## Configuration
@@ -337,6 +348,7 @@ The memory database stores:
 - **Routines** — named action sequences
 - **Phrase mappings** — learned "your phrase" → intent mappings
 - **Action log** — last 100 actions (auto-pruned)
+- **Connected accounts** — OAuth account metadata (no tokens — those go in keyring)
 
 To wipe all memory:
 
@@ -350,6 +362,89 @@ rm ~/.jarvis/memory.db
 
 ```powershell
 Remove-Item "$env:USERPROFILE\.jarvis\memory.db"
+```
+
+### Calendar & Email Integrations
+
+Jarvis can read your Google Calendar and Outlook calendar to answer schedule questions.
+
+#### Step 1 — Create OAuth credentials
+
+**Google (Gmail + Google Calendar):**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+2. Create an OAuth 2.0 Client ID of type **Desktop application**
+3. Enable the **Google Calendar API** and **Gmail API** on your project
+4. Download the client ID and secret
+
+**Microsoft (Outlook Mail + Calendar):**
+
+1. Go to [Azure Portal](https://portal.azure.com/) → App registrations → New registration
+2. Set redirect URI to `http://localhost:8765/callback` (Web platform)
+3. Under Certificates & secrets, create a new client secret
+4. Grant delegated permissions: `Calendars.Read`, `Mail.Read`, `offline_access`
+
+#### Step 2 — Add credentials to config.yaml
+
+```yaml
+integrations:
+  enabled: true
+  timezone: local  # or an IANA name like "America/New_York"
+
+  google:
+    client_id: "YOUR_GOOGLE_CLIENT_ID"
+    client_secret: "YOUR_GOOGLE_CLIENT_SECRET"  # keep private
+
+  microsoft:
+    tenant: common  # or your Azure tenant ID
+    client_id: "YOUR_MICROSOFT_CLIENT_ID"
+    client_secret: "YOUR_MICROSOFT_CLIENT_SECRET"  # keep private
+```
+
+> **Security:** Client secrets are only read at connection time and are never written to logs.
+> OAuth tokens are stored in the system keyring (Keychain on macOS, Credential Manager on Windows).
+> If keyring is unavailable, tokens are AES-256-GCM encrypted under `~/.jarvis/credentials/`.
+
+#### Step 3 — Connect accounts
+
+Say to Jarvis:
+
+```
+"Hey Jarvis"
+"Connect Google account"   ← opens browser for Google sign-in
+"Connect Outlook account"  ← opens browser for Microsoft sign-in
+```
+
+Jarvis opens your browser, you authenticate, and it stores the token securely.
+
+#### Step 4 — Ask about your schedule
+
+```
+"Hey Jarvis"
+"What is on my schedule today"
+"What is my next meeting"
+"What accounts are connected"
+"Disconnect Google"
+```
+
+**Example responses:**
+
+```
+"Boss, you have 3 events today. First is Standup at 10:00 AM.
+ Next is Design Review at 1:30 PM. And finally Sprint Retro at 4:00 PM."
+
+"You are clear today, Boss. No events on your calendar."
+
+"Your next event is Team Sync at 2:00 PM."
+```
+
+#### Timezone configuration
+
+By default, Jarvis uses your system local timezone. To specify an explicit timezone:
+
+```yaml
+integrations:
+  timezone: "America/New_York"  # any IANA timezone name
 ```
 
 ---
@@ -379,16 +474,28 @@ Jarvis/
 │   │
 │   ├── brain/                           # ── Intent Brain ────────────
 │   │   ├── registry.py                  #   YAML → compiled Command objects
-│   │   └── engine.py                    #   4-phase intent matcher
+│   │   ├── engine.py                    #   5-phase intent matcher
+│   │   ├── llm.py                       #   LLM adapter (HF + OpenAI)
+│   │   ├── tools.py                     #   Tool implementations (web_search, read_file, run_code, get_schedule, get_next_event)
+│   │   ├── tool_schemas.py              #   OpenAI-format tool schemas
+│   │   └── tool_executor.py             #   Autonomous tool-calling loop
 │   │
 │   ├── actions/                         # ── OS Actions ──────────────
 │   │   ├── executor.py                  #   Thread-pool action runner
 │   │   ├── apps.py                      #   open / close / switch apps
 │   │   ├── system.py                    #   volume, brightness, DND, etc.
-│   │   └── files.py                     #   open file / folder
+│   │   ├── files.py                     #   open file / folder
+│   │   ├── memory.py                    #   semantic memory actions
+│   │   ├── monitor.py                   #   health monitor actions
+│   │   └── integrations.py              #   calendar / email actions
+│   │
+│   ├── integrations/                    # ── External Integrations ───
+│   │   ├── auth.py                      #   OAuth flows + secure token storage
+│   │   ├── calendar_service.py          #   Unified Google + Outlook calendar
+│   │   └── email_service.py             #   Gmail + Outlook mail connectivity
 │   │
 │   ├── memory/                          # ── Memory Store ────────────
-│   │   └── store.py                     #   SQLite: prefs, routines, log
+│   │   └── store.py                     #   SQLite: prefs, routines, accounts, log
 │   │
 │   └── ipc/                             # ── IPC ─────────────────────
 │       └── server.py                    #   Unix socket (macOS) / named pipe (Windows)
@@ -451,6 +558,69 @@ Checks SQLite `phrase_mappings` table for previously taught mappings. This is ho
 ### No match → "I don't know how to do that."
 
 Jarvis never guesses. No match = no action. This is a feature, not a limitation.
+
+### Phase 5: LLM fallback with function-calling tools (confidence: 0.5)
+
+When no deterministic match is found and the LLM is enabled, Jarvis sends the query to an LLM. If `function_calling_enabled` is `true`, the LLM can autonomously invoke tools (web search, file reading, code execution) to fulfill complex requests before responding.
+
+The tool loop works as follows:
+
+1. User message + tool schemas are sent to the model.
+2. If the model returns tool call(s), Jarvis executes them and appends results.
+3. Loop continues until the model returns a plain text answer or `max_tool_calls` iterations are reached.
+4. The final response is a short spoken sentence suitable for TTS.
+
+**Example prompts that use tools:**
+
+```
+"Search the web for today's Python release notes and summarize in two lines."
+"Read the first 80 lines of README.md and tell me setup prerequisites."
+"Run this Python snippet and tell me the output: print(sum([3,5,8]))."
+```
+
+**Existing commands always take priority.** Tool-calling only activates in the LLM fallback path — deterministic regex, fuzzy, and memory matching still run first.
+
+---
+
+## Function-Calling Configuration
+
+Enable LLM + function-calling in `config.yaml`:
+
+```yaml
+llm:
+  enabled: true
+  provider: "openai_compatible"     # or "huggingface"
+  function_calling_enabled: true
+  max_tool_calls: 4                 # Max tool-loop iterations per query
+  tool_timeout_sec: 15              # Timeout for code execution
+
+  # Per-tool toggles
+  web_search_enabled: true
+  code_exec_enabled: true
+  file_read_enabled: true
+
+  # Workspace root for read_file access control (empty = auto-detect)
+  workspace_root: ""
+
+  # OpenAI-compatible provider settings
+  openai_base_url: "http://localhost:1234/v1"
+  openai_api_key: ""                # Or set OPENAI_API_KEY env var
+  openai_model: "gpt-3.5-turbo"
+```
+
+### Available tools
+
+| Tool | Description | Safety |
+|------|-------------|--------|
+| `web_search(query, max_results)` | Search the web via DuckDuckGo | Results capped at 10 |
+| `read_file(path, start_line, end_line)` | Read text file contents | Blocked for binary files, large files, and sensitive paths (.ssh, .aws, /etc) |
+| `run_code(code, language)` | Execute Python snippets | Strict timeout, output size cap, minimal subprocess env, no shell passthrough |
+
+### Backward compatibility
+
+- If `function_calling_enabled` is `false` (default), behavior is identical to before — plain LLM text response.
+- If the provider doesn't support tool calling, Jarvis gracefully degrades to a plain response.
+- Deterministic command matching (regex, fuzzy, memory) is never bypassed.
 
 ---
 
@@ -565,15 +735,24 @@ Restart Jarvis. The new command works immediately — no retraining, no model up
 
 ### Python (installed via pip)
 
-| Package          | Purpose                            |
-| ---------------- | ---------------------------------- |
-| `openwakeword`   | Wake word detection (OpenWakeWord)  |
-| `sounddevice`    | Real-time microphone capture       |
-| `numpy`          | Audio buffer manipulation          |
-| `faster-whisper` | Local speech-to-text (CTranslate2) |
-| `rapidfuzz`      | Fuzzy string matching for intents  |
-| `pyyaml`         | Config and command file parsing    |
-| `pywin32`        | Named pipe IPC (Windows only)      |
+| Package                      | Purpose                                       |
+| ---------------------------- | --------------------------------------------- |
+| `openwakeword`               | Wake word detection (OpenWakeWord)             |
+| `sounddevice`                | Real-time microphone capture                  |
+| `numpy`                      | Audio buffer manipulation                     |
+| `faster-whisper`             | Local speech-to-text (CTranslate2)            |
+| `rapidfuzz`                  | Fuzzy string matching for intents             |
+| `pyyaml`                     | Config and command file parsing               |
+| `pywin32`                    | Named pipe IPC (Windows only)                 |
+| `google-auth`                | Google OAuth 2.0 token management             |
+| `google-auth-oauthlib`       | Google OAuth installed-app flow               |
+| `google-api-python-client`   | Google Calendar and Gmail API client          |
+| `msal`                       | Microsoft Authentication Library (Outlook)   |
+| `requests`                   | HTTP calls to Microsoft Graph                 |
+| `keyring`                    | Secure OS token storage (Keychain / Credential Manager) |
+| `cryptography`               | AES-256-GCM fallback token encryption         |
+| `python-dateutil`            | Timezone-aware datetime parsing               |
+| `tzdata`                     | IANA timezone database                        |
 
 ### Swift HUD (macOS — no external dependencies)
 

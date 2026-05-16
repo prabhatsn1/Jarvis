@@ -4,7 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 log = logging.getLogger("jarvis.actions")
 
-ACTION_TIMEOUT = 5  # seconds
+ACTION_TIMEOUT = 5         # seconds — default for most actions
+BROWSER_ACTION_TIMEOUT = 35  # seconds — browser navigation can be slow
 
 
 class ActionExecutor:
@@ -32,15 +33,23 @@ class ActionExecutor:
 
     def execute(self, action_path, slots):
         """Execute an action with timeout. Returns result string or None."""
+        if action_path == "noop":
+            return None
+
         func = self._get_action(action_path)
         if not func:
             return None
 
         log.info(f"Executing: {action_path}({slots})")
 
+        timeout = (
+            BROWSER_ACTION_TIMEOUT
+            if action_path.startswith("browser.")
+            else ACTION_TIMEOUT
+        )
         try:
             future = self._pool.submit(func, **slots)
-            result = future.result(timeout=ACTION_TIMEOUT)
+            result = future.result(timeout=timeout)
             log.info(f"Action completed: {result}")
             return result
         except TimeoutError:

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Jarvis"
-        Width="200" Height="200"
+        Width="200" Height="260"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="#01000000"
@@ -13,8 +13,29 @@
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="200"/>
+            <RowDefinition Height="60"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Orb row ── -->
+
+        <!-- Time (above orb) -->
+        <TextBlock Grid.Row="0"
+                   x:Name="TimeText"
+                   Text="--:--"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Top"
+                   Margin="0,10,0,0"
+                   FontSize="11"
+                   FontFamily="Consolas"
+                   FontWeight="Bold"
+                   Foreground="#CC00CED1"
+                   IsHitTestVisible="False" />
+
         <!-- Outer glow -->
-        <Ellipse x:Name="OuterGlow"
+        <Ellipse Grid.Row="0"
+                 x:Name="OuterGlow"
                  Width="144" Height="144"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center"
@@ -30,8 +51,37 @@
             </Ellipse.Effect>
         </Ellipse>
 
+        <!-- Wave ring 1 (speaking ripple) -->
+        <Ellipse Grid.Row="0"
+                 x:Name="WaveRing1"
+                 Width="80" Height="80"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 StrokeThickness="2"
+                 Visibility="Collapsed"
+                 Opacity="0">
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="WaveScale1" CenterX="40" CenterY="40" />
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- Wave ring 2 (speaking ripple, staggered) -->
+        <Ellipse Grid.Row="0"
+                 x:Name="WaveRing2"
+                 Width="80" Height="80"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 StrokeThickness="2"
+                 Visibility="Collapsed"
+                 Opacity="0">
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="WaveScale2" CenterX="40" CenterY="40" />
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
         <!-- Spinning ring -->
-        <Ellipse x:Name="SpinRing"
+        <Ellipse Grid.Row="0"
+                 x:Name="SpinRing"
                  Width="104" Height="104"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center"
@@ -50,7 +100,8 @@
         </Ellipse>
 
         <!-- Core orb -->
-        <Ellipse x:Name="CoreOrb"
+        <Ellipse Grid.Row="0"
+                 x:Name="CoreOrb"
                  Width="80" Height="80"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center">
@@ -70,7 +121,8 @@
         </Ellipse>
 
         <!-- Specular highlight -->
-        <Ellipse Width="56" Height="56"
+        <Ellipse Grid.Row="0"
+                 Width="56" Height="56"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center"
                  Margin="-12,-12,0,0"
@@ -82,5 +134,35 @@
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
+
+        <!-- ── Stats row ── -->
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="2">
+
+            <TextBlock x:Name="WeatherText"
+                       HorizontalAlignment="Center"
+                       FontSize="9"
+                       FontFamily="Consolas"
+                       Foreground="#9900CED1"
+                       IsHitTestVisible="False" />
+
+            <TextBlock x:Name="HealthText"
+                       HorizontalAlignment="Center"
+                       FontSize="9"
+                       FontFamily="Consolas"
+                       Foreground="#9900CED1"
+                       IsHitTestVisible="False" />
+
+            <TextBlock x:Name="TaskText"
+                       HorizontalAlignment="Center"
+                       FontSize="9"
+                       FontFamily="Segoe UI"
+                       Foreground="#7700CED1"
+                       TextTrimming="CharacterEllipsis"
+                       Width="180"
+                       IsHitTestVisible="False" />
+        </StackPanel>
     </Grid>
 </Window>
