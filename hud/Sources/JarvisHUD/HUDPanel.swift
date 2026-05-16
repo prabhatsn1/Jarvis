@@ -4,7 +4,7 @@ import SwiftUI
 class HUDPanel: NSPanel {
     init(stateManager: StateManager) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 200),
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 260),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false

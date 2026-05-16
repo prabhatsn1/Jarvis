@@ -4,3 +4,22 @@ numpy>=1.24
 faster-whisper>=1.0
 rapidfuzz>=3.0
 pyyaml>=6.0
+huggingface_hub>=0.23
+duckduckgo-search>=7.0
+openai>=1.0
+chromadb>=0.5
+sentence-transformers>=2.7
+psutil>=6.0
+gputil>=1.4
+playwright>=1.44
+
+# ── Calendar / Email integrations ────────────────────────────────────────────
+google-auth>=2.30
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.130
+msal>=1.30
+requests>=2.31
+keyring>=25.0
+cryptography>=42.0
+python-dateutil>=2.9
+tzdata>=2024.1

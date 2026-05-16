@@ -1,5 +1,6 @@
 import re
 import logging
+import threading
 
 from rapidfuzz import fuzz
 
@@ -19,9 +20,11 @@ FUZZY_THRESHOLD = 65  # Minimum token_sort_ratio (0-100)
 
 
 class IntentEngine:
-    def __init__(self, registry, memory=None):
+    def __init__(self, registry, memory=None, llm=None, semantic_memory=None):
         self.registry = registry
         self.memory = memory
+        self.llm = llm
+        self.semantic_memory = semantic_memory
 
     # ── public API ──────────────────────────────────────────────
 
@@ -58,6 +61,36 @@ class IntentEngine:
             if result:
                 log.info(f"Memory match → {result.intent}")
                 return result
+
+        # Phase 5: LLM fallback via HuggingFace
+        if self.llm:
+            context_facts = []
+            if self.semantic_memory:
+                try:
+                    hits = self.semantic_memory.query(text, n_results=3)
+                    context_facts = [h["text"] for h in hits]
+                except Exception:
+                    pass
+
+            answer = self.llm.query(text, context_facts=context_facts)
+            if answer:
+                log.info("LLM fallback → free-form response")
+
+                if self.semantic_memory:
+                    t = threading.Thread(
+                        target=self.semantic_memory.extract_and_store_facts,
+                        args=(text,),
+                        daemon=True,
+                    )
+                    t.start()
+
+                return IntentResult(
+                    intent="llm_response",
+                    action="noop",
+                    slots={},
+                    response=answer,
+                    confidence=0.5,
+                )
 
         log.info(f"No match for: '{text}'")
         return None

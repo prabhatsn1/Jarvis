@@ -3,7 +3,6 @@ wake:
   model: "hey_jarvis" # Pre-trained model name (hey_jarvis, alexa, etc.)
   threshold: 0.3 # 0.0 (loose) to 1.0 (strict)
 
-
 audio:
   sample_rate: 16000
   channels: 1
@@ -20,6 +19,8 @@ voice:
 
 memory:
   db_path: "~/.jarvis/memory.db"
+  semantic_enabled: false
+  vector_db_path: "~/.jarvis/chroma"
 
 ipc:
   socket_path: "/tmp/jarvis.sock"
@@ -28,4 +29,134 @@ clap:
   enabled: true
   threshold: 0.2
   min_interval: 0.1 # Seconds between claps (min)
-  max_interval: 0.5 # Seconds between claps (max)
+
+llm:
+  enabled: false # Set to true to enable LLM fallback
+  provider: "huggingface" # huggingface | openai | openai_compatible
+  model: "mistralai/Mistral-7B-Instruct-v0.3"
+  api_token: "" # HuggingFace token, or set HF_TOKEN env var
+  max_new_tokens: 150 # Max tokens in the LLM response
+  conversation_history_turns: 20 # Max user/assistant turn pairs to keep in context
+
+  # ── Function-calling tools ────────────────────────────
+  function_calling_enabled: false # Set true to enable autonomous tool use
+  max_tool_calls: 4 # Max tool-loop iterations per query
+  tool_timeout_sec: 15 # Timeout for run_code execution
+  workspace_root: "" # Root path for read_file (empty = auto-detect)
+
+  # Per-tool toggles
+  web_search_enabled: true
+  code_exec_enabled: true
+  file_read_enabled: true
+  browser_automation_enabled: false # Set true to let the LLM control the browser
+  calendar_enabled: true # get_schedule / get_next_event tools
+  smart_home_enabled: false # smart_home_control tool (requires smart_home.enabled: true)
+  run_command_enabled: false # run_command tool — shell commands with approval gate
+
+  # ── OpenAI provider (used when provider=openai)
+  openai_api_key: "" # Or set OPENAI_API_KEY env var
+  openai_model: "gpt-4o-mini"
+
+  # ── OpenAI-compatible provider (used when provider=openai_compatible)
+  openai_base_url: "http://localhost:1234/v1"
+  # openai_api_key: shared with above
+  # openai_model: "gpt-3.5-turbo"
+
+browser:
+  browser: "chromium" # chromium (Chrome) | webkit (Safari) | firefox
+  headless: false # false = show the browser window
+
+health_monitor:
+  enabled: true # Set true to start monitoring at launch
+  sample_interval_sec: 10 # How often to sample metrics (>= 1)
+  cooldown_sec: 180 # Min seconds between repeated alerts per metric (>= 10)
+  disk_path: "/" # Disk mount to monitor (use C:/ on Windows)
+  thresholds:
+    cpu_percent: 90 # Alert when CPU >= this %
+    ram_percent: 85 # Alert when RAM >= this %
+    disk_percent: 90 # Alert when disk >= this %
+    gpu_percent: 90 # Alert when GPU load >= this % (ignored if no GPU)
+  emergency_thresholds:
+    cpu_percent: 98
+    ram_percent: 95
+    disk_percent: 98
+    gpu_percent: 98
+
+integrations:
+  enabled: true
+  timezone: local # "local" or IANA tz name, e.g. "America/New_York"
+  schedule_default_window_hours: 24
+
+  calendar:
+    google_enabled: true
+    outlook_enabled: true
+    max_events_per_query: 20
+
+  email:
+    gmail_enabled: true
+    outlook_enabled: true
+
+  oauth:
+    redirect_port: 8765
+    use_local_server_callback: true
+    token_store: keyring # keyring | file
+
+smart_home:
+  enabled: false # Set true to enable smart home control
+  backend: "home_assistant" # home_assistant | hue_direct
+
+  home_assistant:
+    url: "http://homeassistant.local:8123"
+    token: "" # Long-lived access token from HA profile page
+    timeout_sec: 10
+
+  hue_direct:
+    bridge_ip: "" # IP address of the Philips Hue Bridge
+    username: "" # Registered app key (see Hue API docs)
+    timeout_sec: 5
+
+exec_commands:
+  enabled: true # Set false to disable all command/script execution
+  timeout_sec: 30 # Max seconds a command may run
+  max_output_chars: 2000 # Truncate output beyond this length for voice
+  working_dir: "" # Working directory ("" = Jarvis's cwd)
+  allowed_dir: "~" # Scripts must be inside this directory tree
+
+notifications:
+  enabled: true # Set false to disable all timers/alarms/reminders
+  sound: true # Play default alert sound with the banner
+  default_snooze_minutes: 5 # Duration used when "snooze" is said without a time
+  max_timer_hours: 24 # Refuse timers/alarms set further than this many hours ahead
+
+  google:
+    client_id: "" # OAuth 2.0 client ID from Google Cloud Console
+    client_secret: "" # OAuth 2.0 client secret (never log this)
+
+  microsoft:
+    tenant: common # "common", "organizations", or a tenant GUID
+    client_id: "" # App registration client ID from Azure Portal
+    client_secret: "" # Client secret (never log this)
+
+# ── Emotion / Urgency Detection ──────────────────────────────────────────────
+# Voice tone is analysed automatically on every utterance.
+# No config required — detection runs in-process with no external deps.
+# Set enabled: false to skip detection and always use the default tone.
+emotion:
+  enabled: true
+
+# ── Event Scheduler (proactive calendar reminders) ───────────────────────────
+event_scheduler:
+  enabled: false # Set true to enable proactive meeting reminders
+  poll_interval_minutes: 2 # How often to check the calendar
+  lead_times_minutes: # Announce events this many minutes before start
+    - 10
+    - 1
+
+# ── Screen Vision (Screenshot + GPT-4 Vision) ────────────────────────────────
+vision:
+  enabled: false # Set true to enable screen vision commands
+  model: "gpt-4o" # Vision-capable OpenAI model
+  max_tokens: 300 # Max response tokens
+  detail: "auto" # Image detail level: "auto" | "low" | "high"
+  screenshot_dir: "/tmp" # Directory for transient screenshot files
+
